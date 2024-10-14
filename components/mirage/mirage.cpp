@@ -22,11 +22,12 @@ const uint8_t MIRAGE_FAN_MED = 3;
 const uint8_t MIRAGE_FAN_LOW = 2;
 
 
-const uint8_t MIRAGE_SWING_MASK = 0x1F;
+const uint8_t MIRAGE_SWING_MASK = 0x00;
 const uint8_t MIRAGE_SWING_HORIZONTAL = 0x01;
-const uint8_t MIRAGE_SWING_VERTICAL = 0x1A;
+const uint8_t MIRAGE_SWING_VERTICAL = 0x02;
+const uint8_t MIRAGE_SWING_BOTH = 0x03
 
-const uint8_t MIRAGE_POWER_OFF = 0xC0;
+const uint8_t MIRAGE_POWER_OFF = 0xC3;
 
 const uint8_t MIRAGE_TEMP_OFFSET = 0x5C;
 
