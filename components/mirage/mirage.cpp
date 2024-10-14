@@ -39,7 +39,7 @@ void MirageClimate::transmit_state() {
 
   auto powered_on = this->mode != climate::CLIMATE_MODE_OFF;
   if (powered_on){
-    remote_state[5] = 0x1A;
+    remote_state[5] = 0x00;
   }
 
   switch (this->mode) {
