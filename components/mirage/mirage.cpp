@@ -2,7 +2,6 @@
 #include "esphome/core/log.h"
 #include "esphome/components/remote_base/mirage_protocol.h"
 
-
 namespace esphome {
 namespace mirage {
 
@@ -10,38 +9,44 @@ static const char *const TAG = "mirage.climate";
 
 const uint8_t MIRAGE_STATE_LENGTH = 14;
 
+// Modes
 const uint8_t MIRAGE_HEAT = 0x10;
 const uint8_t MIRAGE_COOL = 0x20;  
 const uint8_t MIRAGE_DRY = 0x30;
 const uint8_t MIRAGE_AUTO = 0x40;
 const uint8_t MIRAGE_FAN = 0x50;
 
+// Fan speeds
 const uint8_t MIRAGE_FAN_AUTO = 0;
 const uint8_t MIRAGE_FAN_HIGH = 1;
 const uint8_t MIRAGE_FAN_MED = 3;
 const uint8_t MIRAGE_FAN_LOW = 2;
 
-
-const uint8_t MIRAGE_SWING_MASK = 0x00;
+// Swing modes (byte 5)
+const uint8_t MIRAGE_SWING_OFF = 0x00;
 const uint8_t MIRAGE_SWING_HORIZONTAL = 0x01;
 const uint8_t MIRAGE_SWING_VERTICAL = 0x02;
 const uint8_t MIRAGE_SWING_BOTH = 0x03;
 
-const uint8_t MIRAGE_POWER_OFF = 0xC3;
-
+// Power
+const uint8_t MIRAGE_POWER_OFF = 0xC1;
 const uint8_t MIRAGE_TEMP_OFFSET = 0x5C;
 
 void MirageClimate::transmit_state() {
-  this->last_transmit_time_ = millis();  // setting the time of the last transmission.
+  this->last_transmit_time_ = millis();
   uint8_t remote_state[MIRAGE_STATE_LENGTH] = {0};
+  
+  // Header and temperature
   remote_state[0] = 0x56;
-  remote_state[1] = MIRAGE_TEMP_OFFSET; // Starting temperature
+  remote_state[1] = MIRAGE_TEMP_OFFSET;
 
+  // Power state
   auto powered_on = this->mode != climate::CLIMATE_MODE_OFF;
-  if (powered_on){
+  if (powered_on) {
     remote_state[5] = 0x00;
   }
 
+  // Mode
   switch (this->mode) {
     case climate::CLIMATE_MODE_HEAT_COOL:
       remote_state[4] |= MIRAGE_AUTO;
@@ -65,83 +70,82 @@ void MirageClimate::transmit_state() {
   }
 
   // Temperature
-  auto temp = (uint8_t) roundf(clamp(this->target_temperature, float(16), float(32)));
+  auto temp = (uint8_t)roundf(clamp(this->target_temperature, 16.0f, 32.0f));
   remote_state[1] += temp;
 
   // Fan speed
   switch (this->fan_mode.value()) {
-  case climate::CLIMATE_FAN_LOW:
-    remote_state[4] |= MIRAGE_FAN_LOW;
-    break;
-  case climate::CLIMATE_FAN_MEDIUM:
-    remote_state[4] |= MIRAGE_FAN_MED;
-    break;
-  case climate::CLIMATE_FAN_HIGH:
+    case climate::CLIMATE_FAN_LOW:
+      remote_state[4] |= MIRAGE_FAN_LOW;
+      break;
+    case climate::CLIMATE_FAN_MEDIUM:
+      remote_state[4] |= MIRAGE_FAN_MED;
+      break;
+    case climate::CLIMATE_FAN_HIGH:
       remote_state[4] |= MIRAGE_FAN_HIGH;
       break;
-  default:
-    break;
+    default:  // Auto
+      remote_state[4] |= MIRAGE_FAN_AUTO;
+      break;
   }
 
-  // Swing
-  if (this->swing_mode == climate::CLIMATE_SWING_VERTICAL || this->swing_mode == climate::CLIMATE_SWING_BOTH) {
-    remote_state[5] |= 0x1A;
-  }
-  if (this->swing_mode == climate::CLIMATE_SWING_HORIZONTAL || this->swing_mode == climate::CLIMATE_SWING_BOTH) {
-    remote_state[5] |= 1;
+  // Swing mode (clear bits 0-1 first)
+  remote_state[5] &= ~0x03;
+  switch (this->swing_mode) {
+    case climate::CLIMATE_SWING_OFF:
+      remote_state[5] |= MIRAGE_SWING_OFF;
+      break;
+    case climate::CLIMATE_SWING_HORIZONTAL:
+      remote_state[5] |= MIRAGE_SWING_HORIZONTAL;
+      break;
+    case climate::CLIMATE_SWING_VERTICAL:
+      remote_state[5] |= MIRAGE_SWING_VERTICAL;
+      break;
+    case climate::CLIMATE_SWING_BOTH:
+      remote_state[5] |= MIRAGE_SWING_BOTH;
+      break;
   }
 
-  if (this->swing_mode == climate::CLIMATE_SWING_OFF) {
-    if (this->swing_position > 5)
-      this->swing_position = 0;
-    this->swing_position += 1;
-    remote_state[5] |= 2;
-    remote_state[5] |= this->swing_position << 2;
-  }
-
-  ESP_LOGI(TAG,
-           "Sending: %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X",
-           remote_state[0], remote_state[1], remote_state[2], remote_state[3], remote_state[4], remote_state[5],
-           remote_state[6], remote_state[7], remote_state[8], remote_state[9], remote_state[10], remote_state[11],
+  // Debug output
+  ESP_LOGI(TAG, "Sending: %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X %02X %02X   %02X %02X",
+           remote_state[0], remote_state[1], remote_state[2], remote_state[3],
+           remote_state[4], remote_state[5], remote_state[6], remote_state[7],
+           remote_state[8], remote_state[9], remote_state[10], remote_state[11],
            remote_state[12], remote_state[13]);
 
+  // Prepare transmission
   esphome::remote_base::MirageData in;
-  for(uint8_t i=0; i<MIRAGE_STATE_LENGTH; i++){
+  for (uint8_t i = 0; i < MIRAGE_STATE_LENGTH; i++) {
     in.data.push_back(remote_state[i]);
   }
   
-  // Send code
   auto transmit = this->transmitter_->transmit();
   auto *data = transmit.get_data();
-
-  esphome::remote_base::MirageProtocol obj = esphome::remote_base::MirageProtocol();
-  obj.encode(data, in);
-
+  esphome::remote_base::MirageProtocol().encode(data, in);
   transmit.perform();
 }
 
 bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
-  // Check if the esp isn't currently transmitting.
   if (millis() - this->last_transmit_time_ < 500) {
-    ESP_LOGV(TAG, "Blocked receive because of current trasmittion");
+    ESP_LOGV(TAG, "Blocked receive because of current transmission");
     return false;
   }
 
-  esphome::remote_base::MirageProtocol obj = esphome::remote_base::MirageProtocol();
-  optional<esphome::remote_base::MirageData> optional_data_decoded = obj.decode(data);
-  if(!optional_data_decoded){
+  auto optional_data_decoded = esphome::remote_base::MirageProtocol().decode(data);
+  if (!optional_data_decoded) {
     ESP_LOGV(TAG, "Wrong data");
     return false;
   }
 
-  const esphome::remote_base::MirageData& data_decoded = *optional_data_decoded;  // Dereference the optional to get the MirageData
-  obj.dump(data_decoded);
+  const auto &data_decoded = *optional_data_decoded;
+  esphome::remote_base::MirageProtocol().dump(data_decoded);
 
+  // Power state
   if (data_decoded.data[5] == MIRAGE_POWER_OFF) {
-      this->mode = climate::CLIMATE_MODE_OFF;
+    this->mode = climate::CLIMATE_MODE_OFF;
   } else {
+    // Mode
     auto mode = data_decoded.data[4] & 0x70;
-    ESP_LOGV(TAG, "Mode: %02X", mode);
     switch (mode) {
       case MIRAGE_HEAT:
         this->mode = climate::CLIMATE_MODE_HEAT;
@@ -161,14 +165,11 @@ bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
     }
   }
 
-  // Set received temp
-  int temp = data_decoded.data[1] - MIRAGE_TEMP_OFFSET;
-  ESP_LOGVV(TAG, "Temperature Climate: %u", temp);
-  this->target_temperature = temp;
+  // Temperature
+  this->target_temperature = data_decoded.data[1] - MIRAGE_TEMP_OFFSET;
 
-  // Set received fan speed
+  // Fan speed
   auto fan = data_decoded.data[4] & 0x03;
-  ESP_LOGVV(TAG, "Fan: %02X", fan);
   switch (fan) {
     case MIRAGE_FAN_HIGH:
       this->fan_mode = climate::CLIMATE_FAN_HIGH;
@@ -179,26 +180,26 @@ bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
     case MIRAGE_FAN_LOW:
       this->fan_mode = climate::CLIMATE_FAN_LOW;
       break;
-    case MIRAGE_FAN_AUTO:
     default:
       this->fan_mode = climate::CLIMATE_FAN_AUTO;
       break;
   }
 
-  // Set received swing status
-  auto swing = data_decoded.data[5] & MIRAGE_SWING_MASK;
-  ESP_LOGVV(TAG, "Swing: %02X", swing);
-  
-  if ((swing & MIRAGE_SWING_HORIZONTAL) && (swing & MIRAGE_SWING_VERTICAL)){
-    this->swing_mode = climate::CLIMATE_SWING_BOTH;
-  }
-
-  if (swing & MIRAGE_SWING_HORIZONTAL){
-    this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
-  }
-  
-  if (swing & MIRAGE_SWING_VERTICAL){
-    this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+  // Swing mode (only bits 0-1)
+  uint8_t swing_byte = data_decoded.data[5] & 0x03;
+  switch (swing_byte) {
+    case MIRAGE_SWING_OFF:
+      this->swing_mode = climate::CLIMATE_SWING_OFF;
+      break;
+    case MIRAGE_SWING_HORIZONTAL:
+      this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+      break;
+    case MIRAGE_SWING_VERTICAL:
+      this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+      break;
+    case MIRAGE_SWING_BOTH:
+      this->swing_mode = climate::CLIMATE_SWING_BOTH;
+      break;
   }
 
   this->publish_state();
