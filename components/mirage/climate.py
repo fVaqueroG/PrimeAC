@@ -3,7 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import climate_ir
 from esphome.const import CONF_ID
 
-AUTO_LOAD = ["climate_ir"]
+AUTO_LOAD = ["mirage"]
 CODEOWNERS = ["@glmnet"]
 
 mirage_ns = cg.esphome_ns.namespace("mirage")
