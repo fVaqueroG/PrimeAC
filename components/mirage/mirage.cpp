@@ -8,6 +8,10 @@ namespace mirage {
 
 static const char *const TAG = "mirage.climate";
 
+MirageClimate::MirageClimate() {
+  ESP_LOGI(TAG, "MirageClimate constructor called");
+}
+
 const uint8_t MIRAGE_STATE_LENGTH = 14;
 
 // Modes
