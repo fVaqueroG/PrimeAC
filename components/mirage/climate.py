@@ -9,7 +9,7 @@ CODEOWNERS = ["@glmnet"]
 mirage_ns = cg.esphome_ns.namespace("mirage")
 MirageClimate = mirage_ns.class_("MirageClimate", climate_ir.ClimateIR)
 
-CONFIG_SCHEMA = climate_ir.climate_ir_with_receiver_schema.extend(
+CONFIG_SCHEMA = climate_ir.climate_ir_with_receiver_schema(...).extend(
     {
         cv.GenerateID(): cv.declare_id(MirageClimate),
     }
