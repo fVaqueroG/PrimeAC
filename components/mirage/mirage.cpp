@@ -60,7 +60,7 @@ void MirageClimate::transmit_state() {
   remote_state[1] = MIRAGE_TEMP_OFFSET;
 
   // Power state
-  if (this->mode == climate::CLIMATE_MODE_OFF) {
+  if (this->mode == esphome::climate::CLIMATE_MODE_OFF) {
     remote_state[5] = (remote_state[5] & 0x03) | MIRAGE_POWER_OFF;  // Preserve swing bits
   } else {
     remote_state[5] &= ~MIRAGE_POWER_OFF;  // Clear power off bits
@@ -68,22 +68,22 @@ void MirageClimate::transmit_state() {
 
   // Mode
   switch (this->mode) {
-    case climate::CLIMATE_MODE_HEAT_COOL:
+    case esphome::climate::CLIMATE_MODE_HEAT_COOL:
       remote_state[4] |= MIRAGE_AUTO;
       break;
-    case climate::CLIMATE_MODE_HEAT:
+    case esphome::climate::CLIMATE_MODE_HEAT:
       remote_state[4] |= MIRAGE_HEAT;
       break;
-    case climate::CLIMATE_MODE_COOL:
+    case esphome::climate::CLIMATE_MODE_COOL:
       remote_state[4] |= MIRAGE_COOL;
       break; 
-    case climate::CLIMATE_MODE_DRY:
+    case esphome::climate::CLIMATE_MODE_DRY:
       remote_state[4] |= MIRAGE_DRY;
       break;
-    case climate::CLIMATE_MODE_FAN_ONLY:
+    case esphome::climate::CLIMATE_MODE_FAN_ONLY:
       remote_state[4] |= MIRAGE_FAN;
       break;
-    case climate::CLIMATE_MODE_OFF:
+    case esphome::climate::CLIMATE_MODE_OFF:
       // Handled above in power state
       break;
     default:
@@ -96,13 +96,13 @@ void MirageClimate::transmit_state() {
 
   // Fan speed
   switch (this->fan_mode.value()) {
-    case climate::CLIMATE_FAN_LOW:
+    case esphome::climate::CLIMATE_FAN_LOW:
       remote_state[4] |= MIRAGE_FAN_LOW;
       break;
-    case climate::CLIMATE_FAN_MEDIUM:
+    case esphome::climate::CLIMATE_FAN_MEDIUM:
       remote_state[4] |= MIRAGE_FAN_MED;
       break;
-    case climate::CLIMATE_FAN_HIGH:
+    case esphome::climate::CLIMATE_FAN_HIGH:
       remote_state[4] |= MIRAGE_FAN_HIGH;
       break;
     default:  // Auto
@@ -113,29 +113,29 @@ void MirageClimate::transmit_state() {
   // Swing mode (clear bits 0-1 first)
   remote_state[5] &= ~0x03;
   switch (this->swing_mode) {
-    case climate::CLIMATE_SWING_OFF:
+    case esphome::climate::CLIMATE_SWING_OFF:
       remote_state[5] |= MIRAGE_SWING_OFF;
       break;
-    case climate::CLIMATE_SWING_HORIZONTAL:
+    case esphome::climate::CLIMATE_SWING_HORIZONTAL:
       remote_state[5] |= MIRAGE_SWING_HORIZONTAL;
       break;
-    case climate::CLIMATE_SWING_VERTICAL:
+    case esphome::climate::CLIMATE_SWING_VERTICAL:
       remote_state[5] |= MIRAGE_SWING_VERTICAL;
       break;
-    case climate::CLIMATE_SWING_BOTH:
+    case esphome::climate::CLIMATE_SWING_BOTH:
       remote_state[5] |= MIRAGE_SWING_BOTH;
       break;
   }
 
   // Presets
   switch (this->preset.value()) {
-    case climate::CLIMATE_PRESET_SLEEP:
+    case esphome::climate::CLIMATE_PRESET_SLEEP:
       remote_state[6] |= MIRAGE_SLEEP;
       break;
-    case climate::CLIMATE_PRESET_BOOST:
+    case esphome::climate::CLIMATE_PRESET_BOOST:
       remote_state[8] |= MIRAGE_BOOST;
       break;
-    case climate::CLIMATE_PRESET_ECO:
+    case esphome::climate::CLIMATE_PRESET_ECO:
       remote_state[5] |= MIRAGE_ECO;
       break;
     default:  // None
@@ -179,25 +179,25 @@ bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
 
   // Power state (check top two bits only)
   if ((data_decoded.data[5] & 0xC0) == MIRAGE_POWER_OFF) {
-    this->mode = climate::CLIMATE_MODE_OFF;
+    this->mode = esphome::climate::CLIMATE_MODE_OFF;
   } else {
     // Mode
     auto mode = data_decoded.data[4] & 0x70;
     switch (mode) {
       case MIRAGE_HEAT:
-        this->mode = climate::CLIMATE_MODE_HEAT;
+        this->mode = esphome::climate::CLIMATE_MODE_HEAT;
         break;
       case MIRAGE_COOL:
-        this->mode = climate::CLIMATE_MODE_COOL;
+        this->mode = esphome::climate::CLIMATE_MODE_COOL;
         break;
       case MIRAGE_DRY:
-        this->mode = climate::CLIMATE_MODE_DRY;
+        this->mode = esphome::climate::CLIMATE_MODE_DRY;
         break;
       case MIRAGE_FAN:
-        this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+        this->mode = esphome::climate::CLIMATE_MODE_FAN_ONLY;
         break;
       case MIRAGE_AUTO:
-        this->mode = climate::CLIMATE_MODE_HEAT_COOL;
+        this->mode = esphome::climate::CLIMATE_MODE_HEAT_COOL;
         break;
     }
   }
@@ -209,16 +209,16 @@ bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
   auto fan = data_decoded.data[4] & 0x03;
   switch (fan) {
     case MIRAGE_FAN_HIGH:
-      this->fan_mode = climate::CLIMATE_FAN_HIGH;
+      this->fan_mode = esphome::climate::CLIMATE_FAN_HIGH;
       break;
     case MIRAGE_FAN_MED:
-      this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+      this->fan_mode = esphome::climate::CLIMATE_FAN_MEDIUM;
       break;
     case MIRAGE_FAN_LOW:
-      this->fan_mode = climate::CLIMATE_FAN_LOW;
+      this->fan_mode = esphome::climate::CLIMATE_FAN_LOW;
       break;
     default:
-      this->fan_mode = climate::CLIMATE_FAN_AUTO;
+      this->fan_mode = esphome::climate::CLIMATE_FAN_AUTO;
       break;
   }
 
@@ -226,28 +226,28 @@ bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
   uint8_t swing_byte = data_decoded.data[5] & 0x03;
   switch (swing_byte) {
     case MIRAGE_SWING_OFF:
-      this->swing_mode = climate::CLIMATE_SWING_OFF;
+      this->swing_mode = esphome::climate::CLIMATE_SWING_OFF;
       break;
     case MIRAGE_SWING_HORIZONTAL:
-      this->swing_mode = climate::CLIMATE_SWING_HORIZONTAL;
+      this->swing_mode = esphome::climate::CLIMATE_SWING_HORIZONTAL;
       break;
     case MIRAGE_SWING_VERTICAL:
-      this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
+      this->swing_mode = esphome::climate::CLIMATE_SWING_VERTICAL;
       break;
     case MIRAGE_SWING_BOTH:
-      this->swing_mode = climate::CLIMATE_SWING_BOTH;
+      this->swing_mode = esphome::climate::CLIMATE_SWING_BOTH;
       break;
   }
 
   // Presets
   if (data_decoded.data[6] & MIRAGE_SLEEP) {
-    this->preset = climate::CLIMATE_PRESET_SLEEP;
+    this->preset = esphome::climate::CLIMATE_PRESET_SLEEP;
   } else if (data_decoded.data[8] & MIRAGE_BOOST) {
-    this->preset = climate::CLIMATE_PRESET_BOOST;
+    this->preset = esphome::climate::CLIMATE_PRESET_BOOST;
   } else if (data_decoded.data[5] & MIRAGE_ECO) {
-    this->preset = climate::CLIMATE_PRESET_ECO;
+    this->preset = esphome::climate::CLIMATE_PRESET_ECO;
   } else {
-    this->preset = climate::CLIMATE_PRESET_NONE;
+    this->preset = esphome::climate::CLIMATE_PRESET_NONE;
   }
 
   this->publish_state();
