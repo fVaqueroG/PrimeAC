@@ -17,10 +17,10 @@ class MirageClimate : public climate_ir::ClimateIR {
   uint8_t swing_position = 0;
   MirageClimate()
       : climate_ir::ClimateIR(temperature_min_(), temperature_max_(), 1.0f, true, true,
-                              {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
-                               climate::CLIMATE_FAN_HIGH},
-                              {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL, climate::CLIMATE_SWING_HORIZONTAL, climate::CLIMATE_SWING_BOTH},
-                              {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_ECO, climate::CLIMATE_PRESET_SLEEP, climate::CLIMATE_PRESET_BOOST}) {}
+                              {esphome::climate::CLIMATE_FAN_AUTO, esphome::climate::CLIMATE_FAN_LOW, esphome::climate::CLIMATE_FAN_MEDIUM,
+                               esphome::climate::CLIMATE_FAN_HIGH},
+                              {esphome::climate::CLIMATE_SWING_OFF, esphome::climate::CLIMATE_SWING_VERTICAL, esphome::climate::CLIMATE_SWING_HORIZONTAL, esphome::climate::CLIMATE_SWING_BOTH},
+                              {esphome::climate::CLIMATE_PRESET_NONE, esphome::climate::CLIMATE_PRESET_ECO, esphome::climate::CLIMATE_PRESET_SLEEP, esphome::climate::CLIMATE_PRESET_BOOST}) {}
 
   void set_sensor(sensor::Sensor *sensor) { 
     this->sensor_ = sensor; 
