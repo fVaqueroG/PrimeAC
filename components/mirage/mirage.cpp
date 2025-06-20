@@ -8,10 +8,6 @@ namespace mirage {
 
 static const char *const TAG = "mirage.climate";
 
-MirageClimate::MirageClimate() {
-  ESP_LOGI(TAG, "MirageClimate constructor called");
-}
-
 const uint8_t MIRAGE_STATE_LENGTH = 14;
 
 // Modes
@@ -43,16 +39,13 @@ const uint8_t MIRAGE_BOOST = 0x80;    // Byte 8
 const uint8_t MIRAGE_ECO = 0x10;      // Byte 5
 
 void MirageClimate::transmit_state() {
-  ESP_LOGI(TAG, "transmit_state() {
-    this->last_transmit_time_ = millis();
-    
-    // Update current temperature from sensor if available
-    if (this->sensor_) {
-      this->current_temperature = this->sensor_->state;
-    }
-}
-
+  this->last_transmit_time_ = millis();
   
+  // Update current temperature from sensor if available
+  if (this->sensor_) {
+    this->current_temperature = this->sensor_->state;
+  }
+
   uint8_t remote_state[MIRAGE_STATE_LENGTH] = {0};
   
   // Header and temperature
@@ -162,7 +155,7 @@ void MirageClimate::transmit_state() {
   transmit.perform();
 }
 
-bool MirageClimate::on_receive(remote_base::RemoteReceiveData data) {
+bool MirageClimate::on_receive(esphome::remote_base::RemoteReceiveData data) {
   if (millis() - this->last_transmit_time_ < 500) {
     ESP_LOGV(TAG, "Blocked receive because of current transmission");
     return false;
